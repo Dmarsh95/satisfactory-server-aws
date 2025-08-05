@@ -61,9 +61,13 @@ export class ServerHostingStack extends Stack {
       description: "Allow Satisfactory client to connect to server",
     })
 
-    securityGroup.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.udp(7777), "Game port")
-    securityGroup.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.udp(15000), "Beacon port")
-    securityGroup.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.udp(15777), "Query port")
+    securityGroup.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.udp(7777), "Game port UDP")
+    securityGroup.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.udp(15000), "Beacon port UDP")
+    securityGroup.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.udp(15777), "Query port UDP")
+    securityGroup.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(7777), "Game port TCP")
+    securityGroup.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(15000), "Beacon port TCP")
+    securityGroup.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(15777), "Query port TCP")
+    securityGroup.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(8888), "Ver 1.1 Game port TCP")
 
     const server = new ec2.Instance(this, `${prefix}Server`, {
       // 2 vCPU, 8 GB RAM should be enough for most factories
@@ -75,7 +79,7 @@ export class ServerHostingStack extends Stack {
       blockDevices: [
         {
           deviceName: "/dev/sda1",
-          volume: ec2.BlockDeviceVolume.ebs(15),
+          volume: ec2.BlockDeviceVolume.ebs(30, {volumeType: ec2.EbsDeviceVolumeType.GP3}),
         }
       ],
       // server needs a public ip to allow connections
@@ -129,10 +133,10 @@ export class ServerHostingStack extends Stack {
       bucket: startupScript.bucket,
       bucketKey: startupScript.s3ObjectKey,
     });
-    server.userData.addExecuteFileCommand({
-      filePath: localPath,
-      arguments: `${savesBucket.bucketName} ${Config.useExperimentalBuild}`
-    });
+    server.userData.addCommands(`chmod +x ${localPath}`)
+    
+    // Execute with sudo and proper error handling
+    server.userData.addCommands(`${localPath} "${savesBucket.bucketName}" "${Config.useExperimentalBuild}" || echo "Install script failed, check logs"`)
 
     //////////////////////////////
     // Add api to start server
