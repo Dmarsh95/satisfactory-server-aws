@@ -161,6 +161,15 @@ export class ServerHostingStack extends Stack {
         ]
       }))
 
+      startServerLambda.addToRolePolicy(new iam.PolicyStatement({
+        actions: [
+          'ec2:DescribeInstances',
+        ],
+        resources: [
+          '*',
+        ]
+      }))
+
       new apigw.LambdaRestApi(this, `${Config.prefix}StartServerApi`, {
         handler: startServerLambda,
         description: "Trigger lambda function to start server",
