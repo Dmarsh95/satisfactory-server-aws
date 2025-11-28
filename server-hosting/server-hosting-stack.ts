@@ -6,7 +6,7 @@ import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as s3_assets from 'aws-cdk-lib/aws-s3-assets';
 import * as lambda_nodejs from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as iam from 'aws-cdk-lib/aws-iam';
-import { Runtime, FunctionUrlAuthType } from 'aws-cdk-lib/aws-lambda';
+import * as apigw from 'aws-cdk-lib/aws-apigateway';
 
 export class ServerHostingStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
@@ -61,17 +61,17 @@ export class ServerHostingStack extends Stack {
       description: "Allow Satisfactory client to connect to server",
     })
 
-    securityGroup.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.udp(7777), "Game port UPD ipv4")
-    securityGroup.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(7777), "Game port TCP ipv4")
-    securityGroup.addIngressRule(ec2.Peer.anyIpv6(), ec2.Port.udp(7777), "Game port UPD ipv6")
-    securityGroup.addIngressRule(ec2.Peer.anyIpv6(), ec2.Port.tcp(7777), "Game port TCP ipv6")
-
-    securityGroup.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.udp(15000), "Beacon port")
-    securityGroup.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.udp(15777), "Query port")
+    securityGroup.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.udp(7777), "Game port UDP")
+    securityGroup.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.udp(15000), "Beacon port UDP")
+    securityGroup.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.udp(15777), "Query port UDP")
+    securityGroup.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(7777), "Game port TCP")
+    securityGroup.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(15000), "Beacon port TCP")
+    securityGroup.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(15777), "Query port TCP")
+    securityGroup.addIngressRule(ec2.Peer.anyIpv4(), ec2.Port.tcp(8888), "Ver 1.1 Game port TCP")
 
     const server = new ec2.Instance(this, `${prefix}Server`, {
-      // 4 vCPU, 16 GB RAM should be enough for most factories
-      instanceType: new ec2.InstanceType("r7i.xlarge"),
+      // 2 vCPU, 8 GB RAM should be enough for most factories
+      instanceType: new ec2.InstanceType("m5a.large"),
       // get exact ami from parameter exported by canonical
       // https://discourse.ubuntu.com/t/finding-ubuntu-images-with-the-aws-ssm-parameter-store/15507
       machineImage: ec2.MachineImage.fromSsmParameter("/aws/service/canonical/ubuntu/server/20.04/stable/current/amd64/hvm/ebs-gp2/ami-id"),
@@ -79,7 +79,7 @@ export class ServerHostingStack extends Stack {
       blockDevices: [
         {
           deviceName: "/dev/sda1",
-          volume: ec2.BlockDeviceVolume.ebs(50, {volumeType: ec2.EbsDeviceVolumeType.GP3}),
+          volume: ec2.BlockDeviceVolume.ebs(30, {volumeType: ec2.EbsDeviceVolumeType.GP3}),
         }
       ],
       // server needs a public ip to allow connections
@@ -133,10 +133,10 @@ export class ServerHostingStack extends Stack {
       bucket: startupScript.bucket,
       bucketKey: startupScript.s3ObjectKey,
     });
-    server.userData.addExecuteFileCommand({
-      filePath: localPath,
-      arguments: `${savesBucket.bucketName} ${Config.useExperimentalBuild}`
-    });
+    server.userData.addCommands(`chmod +x ${localPath}`)
+    
+    // Execute with sudo and proper error handling
+    server.userData.addCommands(`${localPath} "${savesBucket.bucketName}" "${Config.useExperimentalBuild}" || echo "Install script failed, check logs"`)
 
     //////////////////////////////
     // Add api to start server
@@ -146,8 +146,7 @@ export class ServerHostingStack extends Stack {
       const startServerLambda = new lambda_nodejs.NodejsFunction(this, `${Config.prefix}StartServerLambda`, {
         entry: './server-hosting/lambda/index.ts',
         description: "Restart game server",
-        timeout: Duration.seconds(20),
-        runtime: Runtime.NODEJS_20_X,
+        timeout: Duration.seconds(10),
         environment: {
           INSTANCE_ID: server.instanceId
         }
@@ -155,7 +154,7 @@ export class ServerHostingStack extends Stack {
 
       startServerLambda.addToRolePolicy(new iam.PolicyStatement({
         actions: [
-          'ec2:StartInstances'
+          'ec2:StartInstances',
         ],
         resources: [
           `arn:aws:ec2:*:${Config.account}:instance/${server.instanceId}`,
@@ -164,24 +163,16 @@ export class ServerHostingStack extends Stack {
 
       startServerLambda.addToRolePolicy(new iam.PolicyStatement({
         actions: [
-          "ec2:DescribeInstances"
+          'ec2:DescribeInstances',
         ],
         resources: [
-          '*'
-        ]
-      }))
-      
-      startServerLambda.addToRolePolicy(new iam.PolicyStatement({
-        actions: [
-          "ce:GetCostAndUsage"
-        ],
-        resources: [
-          '*'
+          '*',
         ]
       }))
 
-      startServerLambda.addFunctionUrl({
-        authType: FunctionUrlAuthType.NONE
+      new apigw.LambdaRestApi(this, `${Config.prefix}StartServerApi`, {
+        handler: startServerLambda,
+        description: "Trigger lambda function to start server",
       })
     }
   }

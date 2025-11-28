@@ -1,6 +1,13 @@
 # Satisfactory Server AWS
 Automated Satisfactory Dedicated Server management on AWS
 
+## Extra Stuff
+1. If the Satisfactory server doesn't work but the AWS EC2 instance is running, it probably means the donwload for the satisfactory files from the newly created S3 bucket failed. It can be done manually as well.
+2. This process does **not** import blueprints. Satisfactoy Blueprints are saved separately from Save files in a neighbouring file.
+   1. Join the Satisfactory server as a player and create a test blueprint so it creates the directory needed
+   2. Find you blueprints locally in a file neighbouring your local Save files (look up directories on the Satisfactory wiki)
+   3. SCP to the appropriate file on the EC2 server. Make sure to restart the Satisfactory server  
+
 ## Intro
 FICSIT Incorporated has provided you with this tool (cost deducted from your existing balance) to assist you with Project Assembly.  This tool can help you collaborate with friends on your factory projects.
 
