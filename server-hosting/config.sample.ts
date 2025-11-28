@@ -4,7 +4,7 @@ export const Config = {
      // server hosting region
      region: 'us-east-2',
      // server hosting account
-     account: '43670579917',
+     account: '143670579917',
      // prefix for all resources in this app
      prefix: 'SatisfactoryHosting',
      // set to false if you don't want an api to
