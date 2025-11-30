@@ -48,7 +48,7 @@ At a minimum, account (account number) and region are required.
 ## Quick Start
 This assumes you have all requirements and have [configured aws cli](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-quickstart.html)
 
-1. [Clone this project](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository)
+1. [Clone this project](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository)'git clone'       command
 2. `npm install https://github.com/Dmarsh95/satisfactory-server-aws.git`
 3. `npx cdk bootstrap 143670579917/us-east-1` (replace account number and region)
 4. `cp server-hosting/.config.sample.ts server-hosting/.config.ts` if you have not done so (see [Configuration](#configuration) for customization); you must fill in region and account
@@ -72,3 +72,6 @@ When your ec2 instance shuts down and starts back up, there's no gurantee that t
 After deploying, there will be a Lambda setup with Api Gateway.  This provides a url that you (or your friends) can hit in any browser to start the server back up when you want to play.  To find this URL, navigate in AWS to API Gateway -> SatisfactoryHostingStartServerApi -> Dashboard (lefthand menu); the url is at the top next to "Invoke this API at:"
 
 ## Contributing
+npm i --save-dev @types/node
+npm audit fix --force
+cd satisfactory-server-aws
