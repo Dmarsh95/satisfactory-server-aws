@@ -49,8 +49,8 @@ At a minimum, account (account number) and region are required.
 This assumes you have all requirements and have [configured aws cli](https://docs.aws.amazon.com/cli/latest/userguide/cli-configure-quickstart.html)
 
 1. [Clone this project](https://docs.github.com/en/repositories/creating-and-managing-repositories/cloning-a-repository)
-2. `npm install`
-3. `npx cdk bootstrap 143670579917/us-east-2` (replace account number and region)
+2. `npm install https://github.com/Dmarsh95/satisfactory-server-aws.git`
+3. `npx cdk bootstrap 143670579917/us-east-1` (replace account number and region)
 4. `cp server-hosting/.config.sample.ts server-hosting/.config.ts` if you have not done so (see [Configuration](#configuration) for customization); you must fill in region and account
 5. `npx cdk deploy`
 6. Wait for the CloudFormation stack to finish. It may take a few minutes for the server to download/install everything after the stack is finished.
