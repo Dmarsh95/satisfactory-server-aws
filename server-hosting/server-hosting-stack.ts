@@ -74,7 +74,7 @@ export class ServerHostingStack extends Stack {
       instanceType: new ec2.InstanceType("m7i-flex.large"),
       // get exact ami from parameter exported by canonical
       // https://discourse.ubuntu.com/t/finding-ubuntu-images-with-the-aws-ssm-parameter-store/15507
-      machineImage: ec2.MachineImage.fromSsmParameter("/ubuntu/server/24.04/stable/current/amd64/hvm/ebs-gp2/ami-0ecb62995f68bb549"),
+      machineImage: ec2.MachineImage.fromSsmParameter("/aws/service/canonical/ubuntu/eks-pro/20.04/1.27/stable/20250403.1/arm64/hvm/ebs-gp2/ami-05f1e6b126ddaa96d"),
       // storage for steam, satisfactory and save files
       blockDevices: [
         {
